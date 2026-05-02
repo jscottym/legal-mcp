@@ -3,11 +3,28 @@
 import os
 
 from fastmcp import FastMCP
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from typing import Optional
 from . import courtlistener, clio, pacer
 from .citation_parser import parse_citation, REPORTERS
+from .config import request_courtlistener_token, request_clio_token
+
+
+class ClientTokenMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        cl_token = request.headers.get("x-courtlistener-token", "")
+        clio_token = request.headers.get("x-clio-token", "")
+        t1 = request_courtlistener_token.set(cl_token)
+        t2 = request_clio_token.set(clio_token)
+        try:
+            return await call_next(request)
+        finally:
+            request_courtlistener_token.reset(t1)
+            request_clio_token.reset(t2)
+
 
 mcp = FastMCP(
     name="Legal MCP Server",
@@ -457,7 +474,12 @@ Common Reporters:
 def main():
     port = int(os.environ.get("PORT", "8000"))
     transport = os.environ.get("MCP_TRANSPORT", "streamable-http")
-    mcp.run(transport=transport, host="0.0.0.0", port=port)
+    mcp.run(
+        transport=transport,
+        host="0.0.0.0",
+        port=port,
+        middleware=[Middleware(ClientTokenMiddleware)],
+    )
 
 
 if __name__ == "__main__":

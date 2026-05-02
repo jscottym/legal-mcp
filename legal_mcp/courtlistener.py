@@ -2,13 +2,14 @@
 
 import httpx
 from typing import Optional
-from .config import COURTLISTENER_API_URL, COURTLISTENER_TOKEN
+from .config import COURTLISTENER_API_URL, COURTLISTENER_TOKEN, request_courtlistener_token
 
 
 async def _get_headers() -> dict:
     headers = {"Content-Type": "application/json"}
-    if COURTLISTENER_TOKEN:
-        headers["Authorization"] = f"Token {COURTLISTENER_TOKEN}"
+    token = request_courtlistener_token.get() or COURTLISTENER_TOKEN
+    if token:
+        headers["Authorization"] = f"Token {token}"
     return headers
 
 
