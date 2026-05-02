@@ -72,14 +72,22 @@ async def search_case_law(
     )
     cases = []
     for item in result.get("results", [])[:10]:
+        opinions = item.get("opinions", [])
+        opinion_ids = [op["id"] for op in opinions if "id" in op]
+        snippet = item.get("snippet", "")
+        if not snippet and opinions:
+            snippet = opinions[0].get("snippet", "")
         cases.append({
             "case_name": item.get("caseName", "Unknown"),
             "court": item.get("court", "Unknown"),
             "date_filed": item.get("dateFiled", "Unknown"),
             "citation": item.get("citation", []),
-            "snippet": item.get("snippet", ""),
-            "opinion_id": item.get("id"),
+            "docket_number": item.get("docketNumber", ""),
+            "snippet": snippet,
+            "opinion_ids": opinion_ids,
             "cluster_id": item.get("cluster_id"),
+            "docket_id": item.get("docket_id"),
+            "cite_count": item.get("citeCount", 0),
             "absolute_url": f"https://www.courtlistener.com{item.get('absolute_url', '')}",
         })
     return {
